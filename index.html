@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحلل المالي</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        .animate-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const App = () => {
+            const [view, setView] = useState('dashboard');
+            const [expenses, setExpenses] = useState(() => {
+                const saved = localStorage.getItem('pro_expense_v1');
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [formData, setFormData] = useState({ title: '', amount: '', category: 'طعام', type: 'شخصي' });
+
+            useEffect(() => {
+                localStorage.setItem('pro_expense_v1', JSON.stringify(expenses));
+            }, [expenses]);
+
+            const saveExpense = () => {
+                if (!formData.title || !formData.amount) return alert("أكمل البيانات");
+                const newEntry = { ...formData, id: Date.now(), amount: parseFloat(formData.amount), date: new Date().toLocaleDateString('ar-SA') };
+                setExpenses([newEntry, ...expenses]);
+                setView('dashboard');
+                setFormData({ title: '', amount: '', category: 'طعام', type: 'شخصي' });
+            };
+
+            const deleteItem = (id) => { if(confirm("حذف هذه العملية؟")) setExpenses(expenses.filter(e => e.id !== id)); };
+            const clearAll = () => { if(confirm("مسح السجل بالكامل؟")) setExpenses([]); };
+
+            const totalP = expenses.filter(e => e.type === 'شخصي').reduce((s, e) => s + e.amount, 0);
+            const totalF = expenses.filter(e => e.type === 'عائلي').reduce((s, e) => s + e.amount, 0);
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen pb-24">
+                    <nav className="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-50">
+                        <h1 className="font-black text-indigo-600">المحلل المالي</h1>
+                        <div className="flex bg-slate-100 p-1 rounded-lg text-xs font-bold">
+                            <button onClick={() => setView('dashboard')} className={`px-3 py-1.5 rounded-md ${view==='dashboard'?'bg-white shadow':''}`}>الرئيسية</button>
+                            <button onClick={() => setView('history')} className={`px-3 py-1.5 rounded-md ${view==='history'?'bg-white shadow':''}`}>السجل</button>
+                        </div>
+                    </nav>
+
+                    <div className="p-4">
+                        {view === 'dashboard' ? (
+                            <div className="space-y-4 animate-in">
+                                <div className="grid grid-cols-2 gap-3 text-center">
+                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-50">
+                                        <p className="text-[10px] font-bold text-slate-400">شخصي</p>
+                                        <p className="text-xl font-black text-indigo-600">${totalP}</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-50">
+                                        <p className="text-[10px] font-bold text-slate-400">عائلي</p>
+                                        <p className="text-xl font-black text-emerald-600">${totalF}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setView('add')} className="w-full bg-indigo-600 text-white p-6 rounded-3xl font-black shadow-lg shadow-indigo-100 flex items-center justify-center gap-2">
+                                    <i data-lucide="plus-circle"></i> إضافة مصروف جديد
+                                </button>
+                            </div>
+                        ) : view === 'history' ? (
+                            <div className="space-y-3 animate-in">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold">السجل</h3>
+                                    <button onClick={clearAll} className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded">مسح الكل</button>
+                                </div>
+                                {expenses.map(e => (
+                                    <div key={e.id} className="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-50">
+                                        <div>
+                                            <p className="font-bold text-sm">{e.title}</p>
+                                            <p className="text-[10px] text-slate-400">{e.type} - {e.date}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <p className="font-black text-red-500">-${e.amount}</p>
+                                            <button onClick={() => deleteItem(e.id)} className="text-slate-200"><i data-lucide="trash-2" size="14"></i></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white p-6 rounded-3xl space-y-4 animate-in">
+                                <h3 className="font-black">إضافة بيانات</h3>
+                                <div className="flex p-1 bg-slate-100 rounded-xl text-sm font-bold">
+                                    <button onClick={()=>setFormData({...formData, type:'شخصي'})} className={`flex-1 py-2 rounded-lg ${formData.type==='شخصي'?'bg-white shadow text-indigo-600':''}`}>شخصي</button>
+                                    <button onClick={()=>setFormData({...formData, type:'عائلي'})} className={`flex-1 py-2 rounded-lg ${formData.type==='عائلي'?'bg-white shadow text-emerald-600':''}`}>عائلي</button>
+                                </div>
+                                <input type="text" placeholder="الوصف" className="w-full p-4 bg-slate-50 rounded-xl" value={formData.title} onChange={ev=>setFormData({...formData, title:ev.target.value})} />
+                                <input type="number" placeholder="المبلغ" className="w-full p-4 bg-slate-50 rounded-xl font-bold" value={formData.amount} onChange={ev=>setFormData({...formData, amount:ev.target.value})} />
+                                <button onClick={saveExpense} className="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold">حفظ الآن</button>
+                                <button onClick={()=>setView('dashboard')} className="w-full text-slate-400 text-sm">إلغاء</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        
+        // لتفعيل الأيقونات
+        setTimeout(() => lucide.createIcons(), 500);
+    </script>
+</body>
+</html>
